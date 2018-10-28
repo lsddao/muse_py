@@ -100,7 +100,6 @@ class EEGDataRecorder:
         self.write_elements_doc()
 
     def write_elements_doc(self):
-        #print("write_elements_doc\n")
         self._doc.update(self._variables_provider.getVariables())
         self._doc["ts"] = datetime.datetime.now()
         self._elements_col.insert_one(self._doc)

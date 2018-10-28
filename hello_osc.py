@@ -29,7 +29,7 @@ class MyWidget(QtWidgets.QWidget):
         self.connect(self.btnStartStop, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onStartStop()"))
 
         self.btnNextTrack = QtWidgets.QPushButton("Next track")
-        self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), lambda: self.eeg_handler.trigger_event("next_track_pressed"))
+        self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), lambda: (self.eeg_handler.trigger_event("next_track_pressed"),  self.slider.setValue(0)))
         btnLayout = QtWidgets.QVBoxLayout()
         btnLayout.addWidget(self.btnStartStop)
         btnLayout.addWidget(self.btnNextTrack)
@@ -38,7 +38,7 @@ class MyWidget(QtWidgets.QWidget):
         btnGroup.setLayout(btnLayout)
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setRange(-5, 5)
+        self.slider.setRange(-50, 50)
         self.slider.setValue(0)
 
         layout = QtWidgets.QGridLayout()
