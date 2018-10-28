@@ -13,4 +13,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     handler = eegrecorder.EEGDataRecorder(args.ip, args.port)
+    handler.record_eeg()
     handler.run()

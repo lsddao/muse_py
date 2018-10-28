@@ -24,8 +24,10 @@ class EEGDataRecorder:
         self._elements_col = db[self._session_id + "_elemets"]
         self._session_col = db["sessions"]
 
+    def record_eeg(self):
+        self._dispatcher.map("/notch_filtered_eeg", self.handler_eeg)
+
     def map_handlers(self):
-        #self._dispatcher.map("/notch_filtered_eeg", self.handler_eeg)
         self._dispatcher.map("/elements/alpha_absolute", self.handler_alpha)
         self._dispatcher.map("/elements/beta_absolute", self.handler_beta)
         self._dispatcher.map("/elements/gamma_absolute", self.handler_gamma)
