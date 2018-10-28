@@ -5,7 +5,8 @@ from pythonosc import dispatcher
 from pythonosc import osc_server
 
 class EEGDataRecorder:
-    def __init__(self, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/"):
+    def __init__(self, variables_provider, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/"):
+        self._variables_provider = variables_provider
         self._session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self._subject_data = dict()
         self.init_db(db_connection)
@@ -13,9 +14,6 @@ class EEGDataRecorder:
         self.map_handlers()
         self._server = osc_server.ThreadingOSCUDPServer((osc_ip, osc_port), self._dispatcher)
         self._doc = dict()
-
-    def __del__(self):
-        self.stop()
 
     def init_db(self, db_connection):
         db_client = pymongo.MongoClient(db_connection)
@@ -47,6 +45,13 @@ class EEGDataRecorder:
 
     def set_subject_data(self, subject_data):
         self._subject_data = subject_data
+
+    def trigger_event(self, event_name):
+        doc = {
+            "event_name" : event_name,
+            "ts" : datetime.datetime.now()
+        }
+        self._elements_col.insert_one(doc)
 
     def write_session_begin(self):
         doc = {
@@ -92,5 +97,11 @@ class EEGDataRecorder:
     def handler_horseshoe(self, unused_addr, ch1, ch2, ch3, ch4):
         self._doc["horseshoe"] = [ch1, ch2, ch3, ch4]
         # last handler writes data to db
+        self.write_elements_doc()
+
+    def write_elements_doc(self):
+        #print("write_elements_doc\n")
+        self._doc.update(self._variables_provider.getVariables())
+        self._doc["ts"] = datetime.datetime.now()
         self._elements_col.insert_one(self._doc)
         self._doc = dict()

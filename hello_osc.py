@@ -29,6 +29,7 @@ class MyWidget(QtWidgets.QWidget):
         self.connect(self.btnStartStop, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onStartStop()"))
 
         self.btnNextTrack = QtWidgets.QPushButton("Next track")
+        self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), lambda: self.eeg_handler.trigger_event("next_track_pressed"))
         btnLayout = QtWidgets.QVBoxLayout()
         btnLayout.addWidget(self.btnStartStop)
         btnLayout.addWidget(self.btnNextTrack)
@@ -49,8 +50,8 @@ class MyWidget(QtWidgets.QWidget):
 
         self.session_running = False
 
-        self.eeg_handler = eegrecorder.EEGDataRecorder()
-        self.eeg_thread = threading.Thread(target=self.eeg_handler.run)
+        self.eeg_handler = eegrecorder.EEGDataRecorder(self)
+        self.eeg_thread = threading.Thread(target=self.eeg_handler.run, daemon=True)
 
         self.updateControls()
 
@@ -79,6 +80,12 @@ class MyWidget(QtWidgets.QWidget):
             self.eeg_thread.start()
             self.session_running = True
         self.updateControls()
+
+    def enjoyValue(self):
+        return self.slider.value() / self.slider.maximum()
+
+    def getVariables(self):
+        return { "enjoy" : self.enjoyValue() }
 
 app = QtWidgets.QApplication(sys.argv)
 widget = MyWidget()
