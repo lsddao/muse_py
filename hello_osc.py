@@ -71,6 +71,8 @@ class MyWidget(QtWidgets.QWidget):
             self.session_running = False
             self.eeg_handler.stop()
             self.eeg_thread.join()
+            del self.eeg_thread
+            del self.eeg_handler
         else:
             self.eeg_thread.start()
             self.session_running = True
