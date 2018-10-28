@@ -49,7 +49,7 @@ class MyWidget(QtWidgets.QWidget):
 
         self.session_running = False
 
-        self.eeg_handler = eegrecorder.EEGDataRecorder(subject_name=self.inName.text())
+        self.eeg_handler = eegrecorder.EEGDataRecorder()
         self.eeg_thread = threading.Thread(target=self.eeg_handler.run)
 
         self.updateControls()
@@ -74,6 +74,8 @@ class MyWidget(QtWidgets.QWidget):
             del self.eeg_thread
             del self.eeg_handler
         else:
+            subject_data = { "name" : self.inName.text() }
+            self.eeg_handler.set_subject_data(subject_data)
             self.eeg_thread.start()
             self.session_running = True
         self.updateControls()

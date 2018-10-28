@@ -5,9 +5,9 @@ from pythonosc import dispatcher
 from pythonosc import osc_server
 
 class EEGDataRecorder:
-    def __init__(self, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/", subject_name = "dummy"):
+    def __init__(self, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/"):
         self._session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._subject_name = subject_name
+        self._subject_data = dict()
         self.init_db(db_connection)
         self._dispatcher = dispatcher.Dispatcher()
         self.map_handlers()
@@ -45,14 +45,17 @@ class EEGDataRecorder:
         self.write_session_begin()
         self._server.serve_forever()
 
+    def set_subject_data(self, subject_data):
+        self._subject_data = subject_data
+
     def write_session_begin(self):
         doc = {
             "session_id": self._session_id,
-            "subject_name": self._subject_name,
+            "subject_name": self._subject_data["name"],
             "begin" : datetime.datetime.now()
         }
         self._session_col.insert_one(doc)
-        print("Session {} with subject {} started".format(self._session_id, self._subject_name))
+        print("Session {} with {} started".format(self._session_id, self._subject_data["name"]))
 
     def write_session_end(self):
         doc = {
