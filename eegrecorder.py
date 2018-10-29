@@ -19,7 +19,7 @@ class EEGDataRecorder:
         db_client = pymongo.MongoClient(db_connection)
         db = db_client["muse"]
         self._eeg_col = db[self._session_id + "_eeg"]
-        self._elements_col = db[self._session_id + "_elemets"]
+        self._elements_col = db[self._session_id + "_elements"]
         self._session_col = db["sessions"]
 
     def record_eeg(self):
