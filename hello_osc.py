@@ -1,8 +1,8 @@
 import sys
 import threading
 import eegrecorder
-
 from PySide2 import QtCore, QtWidgets
+import kbcontroller
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -27,9 +27,8 @@ class MyWidget(QtWidgets.QWidget):
 
         self.btnStartStop = QtWidgets.QPushButton()
         self.connect(self.btnStartStop, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onStartStop()"))
-
         self.btnNextTrack = QtWidgets.QPushButton("Next track")
-        self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), lambda: (self.eeg_handler.trigger_event("next_track_pressed"),  self.slider.setValue(0)))
+        self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onNextTrackPressed()"))
         btnLayout = QtWidgets.QVBoxLayout()
         btnLayout.addWidget(self.btnStartStop)
         btnLayout.addWidget(self.btnNextTrack)
@@ -69,6 +68,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def onStartStop(self):
         if self.session_running:
+            kbcontroller.stop()
             self.session_running = False
             self.eeg_handler.stop()
             self.eeg_thread.join()
@@ -78,8 +78,14 @@ class MyWidget(QtWidgets.QWidget):
             subject_data = { "name" : self.inName.text() }
             self.eeg_handler.set_subject_data(subject_data)
             self.eeg_thread.start()
+            kbcontroller.playPause()
             self.session_running = True
         self.updateControls()
+
+    def onNextTrackPressed(self):
+        kbcontroller.nextTrack()
+        self.eeg_handler.trigger_event("next_track_pressed")
+        self.slider.setValue(0)
 
     def enjoyValue(self):
         return self.slider.value() / self.slider.maximum()
