@@ -26,13 +26,14 @@ class EEGDataRecorder:
         self._dispatcher.map("/notch_filtered_eeg", self.handler_eeg)
 
     def map_handlers(self):
-        self._dispatcher.map("/elements/alpha_absolute", self.handler_alpha)
-        self._dispatcher.map("/elements/beta_absolute", self.handler_beta)
-        self._dispatcher.map("/elements/gamma_absolute", self.handler_gamma)
-        self._dispatcher.map("/elements/delta_absolute", self.handler_delta)
-        self._dispatcher.map("/elements/theta_absolute", self.handler_theta)
-        self._dispatcher.map("/elements/is_good", self.handler_is_good)
-        self._dispatcher.map("/elements/horseshoe", self.handler_horseshoe)
+        self._dispatcher.map("/elements/alpha_absolute", self.handler_elements)
+        self._dispatcher.map("/elements/beta_absolute", self.handler_elements)
+        self._dispatcher.map("/elements/gamma_absolute", self.handler_elements)
+        self._dispatcher.map("/elements/delta_absolute", self.handler_elements)
+        self._dispatcher.map("/elements/theta_absolute", self.handler_elements)
+        self._dispatcher.map("/elements/is_good", self.handler_elements)
+        self._dispatcher.map("/elements/horseshoe", self.handler_elements)
+        self._handlers_count = 7
 
     def stop(self):
         self._server.shutdown()
@@ -76,30 +77,15 @@ class EEGDataRecorder:
         }
         self._eeg_col.insert_one(doc)
 
-    def handler_alpha(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["alpha"] = [ch1, ch2, ch3, ch4]
-
-    def handler_beta(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["beta"] = [ch1, ch2, ch3, ch4]
-
-    def handler_gamma(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["gamma"] = [ch1, ch2, ch3, ch4]
-
-    def handler_delta(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["delta"] = [ch1, ch2, ch3, ch4]
-
-    def handler_theta(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["theta"] = [ch1, ch2, ch3, ch4]
-
-    def handler_is_good(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["is_good"] = [ch1, ch2, ch3, ch4]
-
-    def handler_horseshoe(self, unused_addr, ch1, ch2, ch3, ch4):
-        self._doc["horseshoe"] = [ch1, ch2, ch3, ch4]
-        # last handler writes data to db
-        self.write_elements_doc()
-
-    def write_elements_doc(self):
+    def handler_elements(self, addr, ch1, ch2, ch3, ch4):
+        element = addr.replace("/elements/", "")
+        if element != "alpha_absolute" and len(self._doc) == 0:
+            return  # write only full bundles
+        self._doc[element] = [ch1, ch2, ch3, ch4]
+        if len(self._doc) == self._handlers_count:
+            self.dump_to_db()
+ 
+    def dump_to_db(self):
         self._doc.update(self._variables_provider.getVariables())
         self._doc["ts"] = datetime.datetime.now()
         self._elements_col.insert_one(self._doc)
