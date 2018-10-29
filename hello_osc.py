@@ -40,11 +40,15 @@ class MyWidget(QtWidgets.QWidget):
         self.slider.setRange(-50, 50)
         self.slider.setValue(0)
 
+        lcd = QtWidgets.QLCDNumber(2)
+        self.slider.connect(self.slider, QtCore.SIGNAL("valueChanged(int)"), lambda: lcd.display( 5 * self.enjoyValue() ) )
+
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.subjectBox, 0, 0)
         layout.addWidget(statusBox, 0, 1)
         layout.addWidget(btnGroup, 0, 2)
         layout.addWidget(self.slider, 1, 0, 1, 3)
+        layout.addWidget(lcd, 2, 0, 1, 3)
         self.setLayout(layout)
 
         self.session_running = False
