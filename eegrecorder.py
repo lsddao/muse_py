@@ -4,6 +4,9 @@ import datetime
 from pythonosc import dispatcher
 from pythonosc import osc_server
 
+bands = ["alpha", "beta", "gamma", "delta", "theta"]
+channels = [0, 1, 2, 3]
+
 class EEGDataRecorder:
     def __init__(self, variables_provider, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/"):
         self._variables_provider = variables_provider
