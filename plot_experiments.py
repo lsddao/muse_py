@@ -3,12 +3,10 @@ import trackdata
 import plotly.offline as py
 import plotly.graph_objs as go
 
-#import matplotlib.pyplot as plt
-from scipy import signal
-import numpy
 import pprint
 import png
 import colormap
+import numpy as np
 
 def plot_track(track_data, file_name, function):
     x_data = []
@@ -75,26 +73,9 @@ def plot_track_eeg(track_data, file_name, channel):
 
     py.plot(data, filename=file_name+".html")
 
-def plot_spectrogram(track_data, channel):
-    sample_rate = 256
-    samples = []
-
-    for x in track_data:
-        samples.append(x["channel_data"][channel])
-
-    nparray = numpy.array(samples)
-    frequencies, times, spectrogram = signal.spectrogram(nparray, sample_rate)
-
-    plt.pcolormesh(times, frequencies, spectrogram)
-    plt.imshow(spectrogram)
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [sec]')
-    plt.show()
-
-def fft(values):
-    arr = abs(numpy.fft.rfft(values, norm="ortho")).tolist()[1:]
+def fft_color(sig):
     vals = []
-    for f in arr:
+    for f in sig:
         int_val = 10*int(f)
         if int_val > 255:
             int_val = 255
@@ -103,14 +84,20 @@ def fft(values):
         colors.append(256 * colormap.cm_data[int_val][0])
         colors.append(256 * colormap.cm_data[int_val][1])
         vals.append(colors)
-    return(vals)
+    return vals
+
+def fft(sig):
+    win = np.hanning(len(sig))
+    samples = np.array(sig, dtype='float64')
+    samples *= win
+    return abs(np.fft.rfft(samples, norm="ortho")).tolist()[1:]
 
 def dump_image(arr, image_name):
-    png.from_array(arr, 'RGB').save("{}.png".format(image_name))
+    png.from_array(arr, 'RGB').save("tmp\\{}.png".format(image_name))
 
 def fft_test(track_data, channel):
     sample_rate = 256
-    max_image_len = 128
+    max_image_len = 1024
     window = 90
     increment = int(sample_rate*(1-window/100))
 
@@ -127,6 +114,7 @@ def fft_test(track_data, channel):
         if end >= num_samples:
             break
         f = fft(samples[i:end])
+        f = fft_color(f)
         png_arr.append(f)
         if len(png_arr) == max_image_len:
             dump_image(png_arr, img_idx)
