@@ -14,7 +14,6 @@ class EEGDataRecorder:
         self._subject_data = dict()
         self.init_db(db_connection)
         self._dispatcher = dispatcher.Dispatcher()
-        self.map_handlers()
         self._server = osc_server.ThreadingOSCUDPServer((osc_ip, osc_port), self._dispatcher)
         self._doc = dict()
 
@@ -28,15 +27,16 @@ class EEGDataRecorder:
     def record_eeg(self):
         self._dispatcher.map("/notch_filtered_eeg", self.handler_eeg)
 
-    def map_handlers(self):
-        self._dispatcher.map("/elements/alpha_absolute", self.handler_elements)
-        self._dispatcher.map("/elements/beta_absolute", self.handler_elements)
-        self._dispatcher.map("/elements/gamma_absolute", self.handler_elements)
-        self._dispatcher.map("/elements/delta_absolute", self.handler_elements)
-        self._dispatcher.map("/elements/theta_absolute", self.handler_elements)
-        self._dispatcher.map("/elements/is_good", self.handler_elements)
-        self._dispatcher.map("/elements/horseshoe", self.handler_elements)
-        self._handlers_count = 7
+    def record_bands(self):
+        for band in bands:
+            self._dispatcher.map("/elements/{}_absolute".format(band), self.handler_elements)
+
+    def record_quality(self):
+        for element in ['is_good', 'horseshoe']:
+            self._dispatcher.map("/elements/{}".format(element), self.handler_elements)
+
+    def handlers_count(self):
+        return len(self._dispatcher._map)
 
     def stop(self):
         self._server.shutdown()
@@ -78,14 +78,16 @@ class EEGDataRecorder:
         doc = {
             "channel_data" : [ch1, ch2, ch3, ch4],
         }
+        doc.update(self._variables_provider.getVariables())
+        doc["ts"] = datetime.datetime.now()
         self._eeg_col.insert_one(doc)
 
     def handler_elements(self, addr, ch1, ch2, ch3, ch4):
         element = addr.replace("/elements/", "")
-        if element != "alpha_absolute" and len(self._doc) == 0:
-            return  # write only full bundles
+        #if element != "alpha_absolute" and len(self._doc) == 0:
+        #    return  # write only full bundles
         self._doc[element] = [ch1, ch2, ch3, ch4]
-        if len(self._doc) == self._handlers_count:
+        if len(self._doc) == self.handlers_count():
             self.dump_to_db()
  
     def dump_to_db(self):

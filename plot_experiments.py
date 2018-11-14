@@ -3,6 +3,13 @@ import trackdata
 import plotly.offline as py
 import plotly.graph_objs as go
 
+#import matplotlib.pyplot as plt
+from scipy import signal
+import numpy
+import pprint
+import png
+import colormap
+
 def plot_track(track_data, file_name, function):
     x_data = []
     y_data = dict()
@@ -53,3 +60,83 @@ def pairs_f(x):
     values["enjoy"] = x["enjoy"]
     values["is_good"] = x["is_good"][1] and x["is_good"][2]
     return values
+
+def plot_track_eeg(track_data, file_name, channel):
+    x_data = []
+    y_data = []
+
+    for x in track_data:
+        x_data.append(x["ts"])
+        y_data.append(x["channel_data"][channel])
+
+    data = []
+    trace = go.Scatter(x = x_data, y = y_data)
+    data.append(trace)
+
+    py.plot(data, filename=file_name+".html")
+
+def plot_spectrogram(track_data, channel):
+    sample_rate = 256
+    samples = []
+
+    for x in track_data:
+        samples.append(x["channel_data"][channel])
+
+    nparray = numpy.array(samples)
+    frequencies, times, spectrogram = signal.spectrogram(nparray, sample_rate)
+
+    plt.pcolormesh(times, frequencies, spectrogram)
+    plt.imshow(spectrogram)
+    plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.show()
+
+def fft(values):
+    arr = abs(numpy.fft.rfft(values, norm="ortho")).tolist()[1:]
+    vals = []
+    for f in arr:
+        int_val = 10*int(f)
+        if int_val > 255:
+            int_val = 255
+        colors = []
+        colors.append(256 * colormap.cm_data[int_val][2])
+        colors.append(256 * colormap.cm_data[int_val][0])
+        colors.append(256 * colormap.cm_data[int_val][1])
+        vals.append(colors)
+    return(vals)
+
+def dump_image(arr, image_name):
+    png.from_array(arr, 'RGB').save("{}.png".format(image_name))
+
+def fft_test(track_data, channel):
+    sample_rate = 256
+    max_image_len = 128
+    window = 90
+    increment = int(sample_rate*(1-window/100))
+
+    samples = []
+
+    for x in track_data:
+        samples.append(x["channel_data"][channel])
+
+    num_samples = len(samples)
+    png_arr = []
+    img_idx = 0
+    for i in range(0, num_samples, increment):
+        end = i+sample_rate 
+        if end >= num_samples:
+            break
+        f = fft(samples[i:end])
+        png_arr.append(f)
+        if len(png_arr) == max_image_len:
+            dump_image(png_arr, img_idx)
+            png_arr = []
+            img_idx += 1
+    if len(png_arr) > 0:
+        dump_image(png_arr, img_idx)
+
+
+data = trackdata.TrackData("20181111_001524", "eeg")
+#plot_track_eeg(data.track_data[0], "eeg", 1)
+#plot_spectrogram(data.track_data[0], 1)
+fft_test(data.track_data[0], 1)
