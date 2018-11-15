@@ -1,4 +1,5 @@
 import trackdata
+import eegrecorder
 
 import plotly.offline as py
 import plotly.graph_objs as go
@@ -76,13 +77,11 @@ def plot_track_eeg(track_data, file_name, channel):
 def fft_color(sig):
     vals = []
     for f in sig:
-        int_val = 10*int(f)
-        if int_val > 255:
-            int_val = 255
+        int_val = int(5*f)
+        int_val = min(int_val, 255)
+        int_val = max(int_val, 0)
         colors = []
-        colors.append(256 * colormap.cm_data[int_val][2])
-        colors.append(256 * colormap.cm_data[int_val][0])
-        colors.append(256 * colormap.cm_data[int_val][1])
+        colors.append(int_val)
         vals.append(colors)
     return vals
 
@@ -90,10 +89,12 @@ def fft(sig):
     win = np.hanning(len(sig))
     samples = np.array(sig, dtype='float64')
     samples *= win
-    return abs(np.fft.rfft(samples, norm="ortho")).tolist()[1:]
+    f = abs(np.fft.rfft(samples, norm='ortho')).tolist()[1:]
+    f = np.array(f)
+    return f
 
 def dump_image(arr, image_name):
-    png.from_array(arr, 'RGB').save("tmp\\{}.png".format(image_name))
+    png.from_array(arr, 'L').save("tmp\\{}.png".format(image_name))
 
 def fft_test(track_data, channel):
     sample_rate = 256
@@ -106,6 +107,9 @@ def fft_test(track_data, channel):
     for x in track_data:
         samples.append(x["channel_data"][channel])
 
+    f_max = 0
+    f_min = 255
+
     num_samples = len(samples)
     png_arr = []
     img_idx = 0
@@ -114,6 +118,8 @@ def fft_test(track_data, channel):
         if end >= num_samples:
             break
         f = fft(samples[i:end])
+        f_max = max(f_max, max(f))
+        f_min = min(f_min, min(f))
         f = fft_color(f)
         png_arr.append(f)
         if len(png_arr) == max_image_len:
@@ -121,10 +127,14 @@ def fft_test(track_data, channel):
             png_arr = []
             img_idx += 1
     if len(png_arr) > 0:
-        dump_image(png_arr, img_idx)
+        dump_image(png_arr, '{}_{}'.format(img_idx, channel))
+    
+    print(f_max)
+    print(f_min)
 
 
 data = trackdata.TrackData("20181111_001524", "eeg")
 #plot_track_eeg(data.track_data[0], "eeg", 1)
 #plot_spectrogram(data.track_data[0], 1)
-fft_test(data.track_data[0], 1)
+for channel in eegrecorder.channels:
+    fft_test(data.track_data[0], channel)
