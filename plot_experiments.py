@@ -74,14 +74,18 @@ def plot_track_eeg(track_data, file_name, channel):
 
     py.plot(data, filename=file_name+".html")
 
+def int_val(f):
+    v = int(5*f)
+    v = min(v, 255)
+    v = max(v, 0)
+    return v
+
 def fft_color(sig):
     vals = []
-    for f in sig:
-        int_val = int(5*f)
-        int_val = min(int_val, 255)
-        int_val = max(int_val, 0)
+    for i in range(len(sig)):
         colors = []
-        colors.append(int_val)
+        v = int_val(sig[i])
+        colors.append(v)
         vals.append(colors)
     return vals
 
@@ -98,7 +102,7 @@ def dump_image(arr, image_name):
 
 def fft_test(track_data, channel):
     sample_rate = 256
-    max_image_len = 1024
+    max_image_len = 128
     window = 90
     increment = int(sample_rate*(1-window/100))
 
@@ -106,9 +110,6 @@ def fft_test(track_data, channel):
 
     for x in track_data:
         samples.append(x["channel_data"][channel])
-
-    f_max = 0
-    f_min = 255
 
     num_samples = len(samples)
     png_arr = []
@@ -118,23 +119,18 @@ def fft_test(track_data, channel):
         if end >= num_samples:
             break
         f = fft(samples[i:end])
-        f_max = max(f_max, max(f))
-        f_min = min(f_min, min(f))
-        f = fft_color(f)
-        png_arr.append(f)
+        png_arr.append(fft_color(f))
         if len(png_arr) == max_image_len:
-            dump_image(png_arr, img_idx)
+            dump_image(png_arr, '{}_{}'.format(img_idx, channel))
             png_arr = []
             img_idx += 1
     if len(png_arr) > 0:
         dump_image(png_arr, '{}_{}'.format(img_idx, channel))
-    
-    print(f_max)
-    print(f_min)
 
-
-data = trackdata.TrackData("20181111_001524", "eeg")
+#20181115_212705
+#20181111_001524
+data = trackdata.TrackData("20181115_212705", "eeg")
 #plot_track_eeg(data.track_data[0], "eeg", 1)
 #plot_spectrogram(data.track_data[0], 1)
-for channel in eegrecorder.channels:
-    fft_test(data.track_data[0], channel)
+#for channel in eegrecorder.channels:
+fft_test(data.track_data[0], 1)
