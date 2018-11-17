@@ -3,6 +3,7 @@ import threading
 import eegrecorder
 from PySide2 import QtCore, QtWidgets
 import kbcontroller
+import datetime as dt
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -34,14 +35,19 @@ class MyWidget(QtWidgets.QWidget):
         self.writeBox.setTitle("Write to DB")
         self.writeBox.setLayout(writeLayout)
 
-        lblStatus = QtWidgets.QLabel()
+        self.lblStatus = QtWidgets.QLabel()
         statusLayout = QtWidgets.QHBoxLayout()
-        statusLayout.addWidget(lblStatus)
+        statusLayout.addWidget(self.lblStatus)
         statusBox = QtWidgets.QGroupBox()
         statusBox.setTitle("Status")
         statusBox.setLayout(statusLayout)
 
+        statusTimer = QtCore.QTimer(self)
+        statusTimer.timeout.connect(self.updateStatus)
+        statusTimer.start(1000)
+
         self.btnStartStop = QtWidgets.QPushButton()
+        #self.btnStartStop.clicked.connect()
         self.connect(self.btnStartStop, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onStartStop()"))
         self.btnNextTrack = QtWidgets.QPushButton("Next track")
         self.connect(self.btnNextTrack, QtCore.SIGNAL("clicked()"), self, QtCore.SLOT("onNextTrackPressed()"))
@@ -53,19 +59,19 @@ class MyWidget(QtWidgets.QWidget):
         btnGroup.setLayout(btnLayout)
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setRange(0, 5)
+        self.slider.setRange(-2, 2)
         self.slider.setValue(0)
 
-        lcd = QtWidgets.QLCDNumber(2)
-        self.slider.connect(self.slider, QtCore.SIGNAL("valueChanged(int)"), lambda: lcd.display( 5 * self.enjoyValue() ) )
+        self.lcd = QtWidgets.QLCDNumber(2)
+        self.slider.connect(self.slider, QtCore.SIGNAL("valueChanged(int)"), self, QtCore.SLOT("onEnjoyValueChanged()"))
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.subjectBox, 0, 0)
         layout.addWidget(self.writeBox, 0, 1)
-        #layout.addWidget(statusBox, 0, 1)
-        layout.addWidget(btnGroup, 0, 2)
+        layout.addWidget(statusBox, 0, 2)
+        layout.addWidget(btnGroup, 0, 3)
         layout.addWidget(self.slider, 1, 0, 1, 3)
-        layout.addWidget(lcd, 2, 0, 1, 3)
+        layout.addWidget(self.lcd, 2, 0, 1, 3)
         self.setLayout(layout)
 
         self.session_running = False
@@ -89,6 +95,17 @@ class MyWidget(QtWidgets.QWidget):
            self.btnNextTrack.setDisabled(True)
            self.btnStartStop.setText("Start session")
 
+    def updateStatus(self):
+        eeg_online = False
+        if hasattr(self.eeg_handler, "_last_eeg_ts"):
+            diff = dt.datetime.now() - self.eeg_handler._last_eeg_ts
+            eeg_online = diff.seconds < 1
+        elements_online = False
+        if hasattr(self.eeg_handler, "_last_elements_ts"):
+            diff = dt.datetime.now() - self.eeg_handler._last_elements_ts
+            elements_online = diff.seconds < 1
+        self.lblStatus.setText("Session running: {}\nRaw EEG online: {}\nElements online: {}".format(self.session_running, eeg_online, elements_online))
+
     def onStartStop(self):
         if self.session_running:
             kbcontroller.stop()
@@ -106,7 +123,7 @@ class MyWidget(QtWidgets.QWidget):
             if self.chkWriteEEG.isChecked():
                 self.eeg_handler.record_eeg()
             if self.chkWriteQuality.isChecked():
-                self.chkWriteQuality()
+                self.eeg_handler.record_quality()
             self.eeg_thread.start()
             kbcontroller.playPause()
             self.session_running = True
@@ -114,11 +131,15 @@ class MyWidget(QtWidgets.QWidget):
 
     def onNextTrackPressed(self):
         kbcontroller.nextTrack()
-        self.eeg_handler.trigger_event("next_track_pressed")
+        self.eeg_handler.trigger_eeg_event("next_track_pressed")
         self.slider.setValue(0)
 
+    def onEnjoyValueChanged(self):
+        self.lcd.display(self.enjoyValue())
+        self.eeg_handler.trigger_eeg_event("enjoy_changed", self.enjoyValue())
+
     def enjoyValue(self):
-        return self.slider.value() / self.slider.maximum()
+        return self.slider.value()
 
     def getVariables(self):
         return { "enjoy" : self.enjoyValue() }

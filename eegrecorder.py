@@ -57,6 +57,14 @@ class EEGDataRecorder:
         }
         self._elements_col.insert_one(doc)
 
+    def trigger_eeg_event(self, event_name, value=None):
+        doc = {
+            "event_name" : event_name,
+            "value" : value,
+            "ts" : datetime.datetime.now()
+        }
+        self._eeg_col.insert_one(doc)
+
     def write_session_begin(self):
         doc = {
             "session_id": self._session_id,
@@ -75,14 +83,14 @@ class EEGDataRecorder:
         print("Session {} ended".format(self._session_id))
 
     def handler_eeg(self, unused_addr, ch1, ch2, ch3, ch4):
+        self._last_eeg_ts = datetime.datetime.now()
         doc = {
             "channel_data" : [ch1, ch2, ch3, ch4],
         }
-        doc.update(self._variables_provider.getVariables())
-        doc["ts"] = datetime.datetime.now()
         self._eeg_col.insert_one(doc)
 
     def handler_elements(self, addr, ch1, ch2, ch3, ch4):
+        self._last_elements_ts = datetime.datetime.now()
         element = addr.replace("/elements/", "")
         #if element != "alpha_absolute" and len(self._doc) == 0:
         #    return  # write only full bundles
