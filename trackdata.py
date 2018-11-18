@@ -1,14 +1,18 @@
 import pymongo
 
-class TrackData:
-    def __init__(self, session_id, collection_suffix = "elements"):
+class DBConnection:
+    def __init__(self, session_id, collection_suffix):
         client = pymongo.MongoClient("mongodb://localhost:27017/")
         db = client["muse"]
         col = db[session_id + "_" + collection_suffix]
-        doc = col.find().sort("_id", pymongo.ASCENDING)
+        self.doc = col.find().sort("_id", pymongo.ASCENDING)
+
+class TrackData:
+    def __init__(self, session_id, collection_suffix):
+        dbconn = DBConnection(session_id, collection_suffix)
         self.track_data = []
         current_track = []
-        for x in doc:
+        for x in dbconn.doc:
             if "event_name" in x:
                 if len(current_track) > 0:
                     self.track_data.append(current_track)
