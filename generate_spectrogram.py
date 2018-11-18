@@ -14,24 +14,21 @@ def int_val(f):
     return v
 
 def fft_color(sig):
-    vals = []
+    vals = np.empty(len(sig))
     for i in range(len(sig)):
-        colors = []
-        v = int_val(sig[i])
-        colors.append(v)
-        vals.append(colors)
+        vals[i] = int_val(sig[i])
     return vals
 
 def fft(sig):
     win = np.hanning(len(sig))
     samples = np.array(sig, dtype='float64')
     samples *= win
-    f = abs(np.fft.rfft(samples, norm='ortho')).tolist()[1:]
-    f = np.array(f)
+    f = abs(np.fft.rfft(samples, norm='ortho'))
+    f = np.delete(f, 0)
     return f
 
 def dump_image(arr, image_name):
-    png.from_array(arr, 'L').save("tmp\\{}.png".format(image_name))
+    png.from_array(arr, 'L', info={ "bitdepth" : 8 }).save("tmp\\{}.png".format(image_name))
 
 def generate_slices(session_id, channel, sample_rate=256, max_image_len=128, window=90):
     dbconn = trackdata.DBConnection(session_id, 'eeg')
@@ -40,9 +37,10 @@ def generate_slices(session_id, channel, sample_rate=256, max_image_len=128, win
     samples = collections.deque(maxlen=sample_rate)
 
     shift = 0
-    png_arr = []
+    png_arr = np.zeros([max_image_len, max_image_len])
     img_idx = 0
     enjoy = 0
+    png_arr_idx = 0
     for x in dbconn.doc:
         if "channel_data" in x:
             U = x["channel_data"][channel]
@@ -52,10 +50,11 @@ def generate_slices(session_id, channel, sample_rate=256, max_image_len=128, win
             if shift == increment:
                 shift = 0
                 f = fft(samples)
-                png_arr.append(fft_color(f))
-            if len(png_arr) == max_image_len:
+                png_arr[png_arr_idx] = fft_color(f)
+                png_arr_idx += 1
+            if png_arr_idx == max_image_len:
                 dump_image(png_arr, '{}_{}_ch{}_enjoy{}'.format(session_id, img_idx, channel, enjoy))
-                png_arr = []
+                png_arr_idx = 0
                 img_idx += 1
         elif "event_name" in x:
             if x["event_name"] == "enjoy_changed":
