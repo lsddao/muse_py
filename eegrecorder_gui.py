@@ -104,7 +104,10 @@ class MyWidget(QtWidgets.QWidget):
         if hasattr(self.eeg_handler, "_last_elements_ts"):
             diff = dt.datetime.now() - self.eeg_handler._last_elements_ts
             elements_online = diff.seconds < 1
-        self.lblStatus.setText("Session running: {}\nRaw EEG online: {}\nElements online: {}".format(self.session_running, eeg_online, elements_online))
+        uptime = False
+        if hasattr(self, "session_start_ts"):
+            uptime = dt.datetime.now() - self.session_start_ts
+        self.lblStatus.setText("Session running: {}\nRaw EEG online: {}\nElements online: {}".format(uptime, eeg_online, elements_online))
 
     def onStartStop(self):
         if self.session_running:
@@ -127,6 +130,7 @@ class MyWidget(QtWidgets.QWidget):
             self.eeg_thread.start()
             kbcontroller.playPause()
             self.session_running = True
+            self.session_start_ts = dt.datetime.now()
         self.updateControls()
 
     def onNextTrackPressed(self):
