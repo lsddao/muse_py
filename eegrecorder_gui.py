@@ -24,11 +24,12 @@ class MyWidget(QtWidgets.QWidget):
 
         self.chkWriteEEG = QtWidgets.QCheckBox()
         self.chkWriteEEG.setText("Raw EEG")
-        self.chkWriteEEG.setChecked(True)
         self.chkWriteBands = QtWidgets.QCheckBox()
         self.chkWriteBands.setText("Standard bands")
+        self.chkWriteBands.setChecked(True)
         self.chkWriteQuality = QtWidgets.QCheckBox()
         self.chkWriteQuality.setText("Quality elements")
+        self.chkWriteQuality.setChecked(True)
         writeLayout = QtWidgets.QVBoxLayout()
         writeLayout.addWidget(self.chkWriteEEG)
         writeLayout.addWidget(self.chkWriteBands)

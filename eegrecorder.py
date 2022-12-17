@@ -6,6 +6,7 @@ from pythonosc import osc_server
 
 bands = ["alpha", "beta", "gamma", "delta", "theta"]
 channels = [0, 1, 2, 3]
+quality = ['is_good', 'horseshoe']
 
 class EEGDataRecorder:
     def __init__(self, variables_provider, osc_ip = "127.0.0.1", osc_port = 7000, db_connection = "mongodb://localhost:27017/"):
@@ -32,7 +33,7 @@ class EEGDataRecorder:
             self._dispatcher.map("/elements/{}_absolute".format(band), self.handler_elements)
 
     def record_quality(self):
-        for element in ['is_good', 'horseshoe']:
+        for element in quality:
             self._dispatcher.map("/elements/{}".format(element), self.handler_elements)
 
     def handlers_count(self):
@@ -45,6 +46,7 @@ class EEGDataRecorder:
     def run(self):
         print("Serving on {}".format(self._server.server_address))
         self.write_session_begin()
+        self._index = 0.0
         self._server.serve_forever()
 
     def set_subject_data(self, subject_data):
@@ -92,14 +94,14 @@ class EEGDataRecorder:
     def handler_elements(self, addr, ch1, ch2, ch3, ch4):
         self._last_elements_ts = datetime.datetime.now()
         element = addr.replace("/elements/", "")
-        #if element != "alpha_absolute" and len(self._doc) == 0:
-        #    return  # write only full bundles
         self._doc[element] = [ch1, ch2, ch3, ch4]
-        if len(self._doc) == self.handlers_count():
+        if len(self._doc) == len(bands)+len(quality):
             self.dump_to_db()
  
     def dump_to_db(self):
-        self._doc.update(self._variables_provider.getVariables())
-        self._doc["ts"] = datetime.datetime.now()
+        #self._doc.update(self._variables_provider.getVariables())
+        #self._doc["ts"] = (datetime.datetime.now() - self._start_ts).
+        self._doc["ts"] = self._index
+        self._index += 0.1
         self._elements_col.insert_one(self._doc)
         self._doc = dict()
